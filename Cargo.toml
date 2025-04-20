@@ -23,10 +23,8 @@ clap = { version = "4.5.27", features = ["derive", "cargo"] }
 colored = "3.0.0"
 egui = "0.30"
 eframe = { version = "0.30", default-features = false, features = [
-    "persistence",
     "default_fonts",
     "x11",
-    "wayland",
     "glow",
 ] }
 env_logger = { version = "0.10", default-features = false, features = [

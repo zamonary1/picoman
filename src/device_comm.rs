@@ -15,7 +15,6 @@ use strum_macros::EnumIter;
 #[derive(Debug, EnumIter)]
 pub enum DeviceName {
     Pico4Neo3,
-    Np2ap,
     None,
 }
 pub struct DeviceStruct {
@@ -30,11 +29,6 @@ pub fn device_info(n: &DeviceName) -> DeviceStruct {
             name: DeviceName::Pico4Neo3,
             product: 0x00b7,
             vendor: 0x2d40,
-        },
-        DeviceName::Np2ap => DeviceStruct {
-            name: DeviceName::Np2ap,
-            product: 0x201c,
-            vendor: 0x0e8d,
         },
         DeviceName::None => DeviceStruct {
             name: DeviceName::None,

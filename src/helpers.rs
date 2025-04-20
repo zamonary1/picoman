@@ -16,9 +16,8 @@ pub fn nix_workaround() {
 If you can't launch the gui, run:"
                 .red(),
             "
-nix-shell --run \"make runnix\""
+nix-shell --run \"just runnix\""
                 .green()
         );
-
     }
 }
