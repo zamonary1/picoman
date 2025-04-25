@@ -106,6 +106,7 @@ impl Apktool {
         //linux and macos
         let mut delimeter = ':';
 
+        //in windows PATH envvar is sepatared by semicolon
         if cfg!(target_os = "windows") {
             delimeter = ';';
         }
@@ -127,10 +128,6 @@ impl Apktool {
             }
         }
     }
-
-    // pub fn is_java_installed() -> bool {
-    //     Self::_is_command_installed("java")
-    // }
 
     pub fn decomp_apk(path: &Path, out: &Path) -> Option<Error> {
         let java = DownloadPath::apktool().java;

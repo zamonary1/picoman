@@ -1,6 +1,6 @@
 ### Speed up game development by automatically installing exported games to Android VR headsets.
 
-![Main menu](./media/app1.png)
+![Main menu](./media/app0.1.1.png)
 
 This tool can:
 - Automatically rename and sign APK files to keep multiple versions of the same game
@@ -32,7 +32,15 @@ Supported devices:
 | Apk installing | ✅    |
 | Apk signing    | ✅    |
 | Apk renaming   | ✅    |
-| Installing from other packaging formats | Planned |
+
+Todo:
+1. Bugfixes and stability improvements
+2. Installing from other packaging formats (i.e. apk bundled with game cache)
+3. Text translation to multiple languages
+4. Support for more devices
+
+And more coming soon! 🚀
+
 
 *All features are currently tested on linux, windows builds may be unstable.
 

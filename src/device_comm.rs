@@ -30,6 +30,8 @@ pub fn device_info(n: &DeviceName) -> DeviceStruct {
             product: 0x00b7,
             vendor: 0x2d40,
         },
+        //0x0e8d, 0x201c
+        //0x00b7, 0x2d40
         DeviceName::None => DeviceStruct {
             name: DeviceName::None,
             product: 0x0,

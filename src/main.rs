@@ -34,8 +34,8 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         // viewport: egui::ViewportBuilder::default().with_inner_size([240.0, 300.0]),
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([330.0, 260.0])
-            .with_min_inner_size([330.0, 260.0]),
+            .with_inner_size([330.0, 300.0])
+            .with_min_inner_size([330.0, 230.0]),
         ..Default::default()
     };
 
@@ -50,6 +50,7 @@ struct PicomanApp {
     is_processing: bool,
     is_dev_connected: bool,
     is_java_installed: bool,
+    games_owned: bool,
     device: DeviceName,
     status: String,
     files: Vec<PathBuf>,
@@ -71,6 +72,7 @@ impl Default for PicomanApp {
             is_java_installed: apk_utils::Apktool::_is_command_installed(
                 apk_utils::DownloadPath::apktool().java,
             ),
+            games_owned: false,
             device: DeviceName::None,
             status: String::new(),
             files: vec![],
@@ -129,38 +131,51 @@ impl eframe::App for PicomanApp {
                 }
             }
 
-            ui.collapsing("Added files", |ui| {
-                let mut elem_to_delete = usize::MAX;
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for elem in 0..self.files.len() {
-                        ui.horizontal(|ui| {
-                            if ui.button("Delete").clicked() {
-                                println!("Deleted element {}!", elem);
-                                elem_to_delete = elem;
-                            }
-                            ui.label(format!(
-                                "{}: {:?}",
-                                elem + 1,
-                                self.files[elem].file_name().unwrap()
-                            ));
-                        });
-                    }
-                }); //scroll area
+            ui.horizontal(|ui| {
+                ui.collapsing("Added files", |ui| {
+                    let mut elem_to_delete = usize::MAX;
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for elem in 0..self.files.len() {
+                            ui.horizontal(|ui| {
+                                if ui.button("Delete").clicked() {
+                                    println!("Deleted element {}!", elem);
+                                    elem_to_delete = elem;
+                                }
+                                // Without ui.with_layout text doesn't cull and overflows from window edge
+                                ui.with_layout(egui::Layout::top_down(egui::Align::LEFT), |ui| {
+                                    ui.label(format!(
+                                        "{}: {:?}",
+                                        elem + 1,
+                                        self.files[elem].file_name().unwrap()
+                                    ));
+                                }); //ui.with_layout
+                            }); //ui.horizontal
+                        }
+                    }); //scroll are
 
-                if elem_to_delete != usize::MAX {
-                    self.files.remove(elem_to_delete);
-                }
-                if self.files.len() == 0 {
-                    ui.label("No files added!");
-                }
+                    if elem_to_delete != usize::MAX {
+                        self.files.remove(elem_to_delete);
+                    }
+                    if self.files.len() == 0 {
+                        ui.label("No files added!");
+                    }
+                }); //Added files tab
             });
 
             ui.label(format!("Total files: {}", self.files.len()));
 
+            ui.checkbox(
+                &mut self.games_owned,
+                "I legally own or have permission to use these files",
+            );
+
             ui.horizontal(|ui| {
                 if ui
                     .add_enabled(
-                        !self.is_processing && self.is_java_installed && self.is_dev_connected,
+                        !self.is_processing
+                            && self.is_java_installed
+                            && self.is_dev_connected
+                            && self.games_owned,
                         egui::Button::new("Patch and upload"),
                     )
                     .clicked()
@@ -174,7 +189,7 @@ impl eframe::App for PicomanApp {
                 };
                 if ui
                     .add_enabled(
-                        !self.is_processing && self.is_java_installed,
+                        !self.is_processing && self.is_java_installed && self.games_owned,
                         egui::Button::new("Patch and save"),
                     )
                     .clicked()
