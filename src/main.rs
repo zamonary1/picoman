@@ -12,9 +12,9 @@ use std::{fs, path::PathBuf, sync::mpsc, thread};
 use device_comm::DeviceName;
 use eframe::egui::{self};
 use egui::Color32;
-use rfd::FileDialog;
+use native_dialog::{DialogBuilder, MessageLevel};
 
-fn main() -> eframe::Result {
+fn main() {
     // println!("{:?}", temp_dir!().join("files_to_install"));
     let args: Vec<String> = std::env::args().collect();
 
@@ -39,11 +39,23 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_native(
+    match eframe::run_native(
         format!("Picoman {}", env!("CARGO_PKG_VERSION")).as_str(),
         options,
         Box::new(|_cc| Ok(Box::<PicomanApp>::default())),
-    )
+    ) {
+        Ok(_) => {}
+        Err(err) => {
+            eprintln!("There was an error when starting GUI:\n{}", err);
+            let _ = DialogBuilder::message()
+                .set_level(MessageLevel::Error)
+                .set_title("Error")
+                .set_text(format!("There was an error when starting GUI:\n{}", err))
+                .alert()
+                .show();
+            std::process::exit(1);
+        }
+    }
 }
 
 struct PicomanApp {
@@ -122,12 +134,13 @@ impl eframe::App for PicomanApp {
             }
 
             if ui.button("Add files").clicked() {
-                let files_sel = FileDialog::new()
+                let files_sel = DialogBuilder::file()
                     .add_filter("Android Package", &["apk"])
-                    .set_directory("/")
-                    .pick_files();
-                if files_sel != None {
-                    self.files.extend(files_sel.unwrap());
+                    .open_multiple_file()
+                    .show()
+                    .unwrap_or(Vec::new());
+                if files_sel.len() > 0 {
+                    self.files.extend(files_sel);
                 }
             }
 
@@ -341,10 +354,7 @@ fn handle_sign(
         ));
 
         if out == PathBuf::new() {
-            let pick = FileDialog::new()
-                .add_filter("Where to save APKs", &["apk"])
-                .set_directory("/")
-                .pick_folder();
+            let pick = DialogBuilder::file().open_single_dir().show().unwrap();
             if pick != None {
                 out_mut = pick.unwrap();
             } else {
