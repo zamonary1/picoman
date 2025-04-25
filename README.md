@@ -8,14 +8,18 @@ This tool can:
 
 It is written in Rust🦀 and supports both GUI and CLI.
 
+<!-- To build this project you need to have [just installed.](https://github.com/casey/just) -->
+Use the following syntax to build this project:
 
-To build this project you need to have [just installed.](https://github.com/casey/just)
-Use the following syntax:
+`cargo --release build`
+or
+`cargo --release run`
 
-`just PROFILE=release run`
+You can find precompiled binaries at [releases page](https://github.com/zamonary1/picoman/releases)
 
 Usage:
-`picoman apk --install <file>` - installs APK file to your device. Accepts path to a file, or directory to install every file in folder.
+`picoman apk --install <file>` - installs APK file to your device. Accepts a
+path to file or directory to install every recognised file in folder.
 
 
 Supported devices:
