@@ -56,4 +56,4 @@ This project wouldn't be possible without these amazing projects, consider going
 
 [Uber Apk Signer by Patrick Favre](https://github.com/patrickfav/uber-apk-signer), it is licensed under [Apache License 2.0](https://github.com/patrickfav/uber-apk-signer/blob/main/LICENSE) too.
 
-And all of project dependencies. You can look at them in [Cargo.toml](Cargo.toml#L20)
+And all of project dependencies. You can look at them in [dependencies tab.](https://github.com/zamonary1/picoman/network/dependencies)
