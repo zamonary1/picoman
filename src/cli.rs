@@ -5,7 +5,7 @@ pub(crate) use clap::{arg, command, value_parser, Command};
 use std::path::PathBuf;
 
 use crate::apk_utils::Apktool;
-use crate::device_comm::{self, device_info, push_apk_id, DeviceName};
+use crate::device_comm::{self, push_apk_id, DeviceName};
 
 #[macro_export]
 macro_rules! extension_str {
@@ -69,19 +69,6 @@ pub fn parse_args() {
                 )
         )
 
-        // .subcommand(
-        //     Command::new("install")
-        //         .about("Patch APK and install via ADB")
-        //         .arg_required_else_help(true)
-        //         .arg(
-        //             Arg::new("file")
-
-        //             .help("File path or directory")
-        //             .value_parser(value_parser!(PathBuf))
-        //         )
-
-        // )
-
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("devices") {
@@ -120,14 +107,14 @@ pub fn parse_args() {
             let patched_apk = Apktool::patch_apk(&unwrap).expect("Error occured");
             // device_comm::push_apk(&patched_apk.to_path_buf());
             let device = device_comm::get_connected_device();
-            let vendor_id = device_info(&device).vendor;
-            let product_id = device_info(&device).product;
+            let vendor_id = device.info().vendor;
+            let product_id = device.info().product;
             match device {
                 DeviceName::None => println!("No devices detected."),
                 DeviceName::Pico4Neo3 => println!("Pico 4 or Pico neo 3 is detected."),
-                _ => (),
+                _ => println!("Unknown device is detected."),
             }
-            let _ = push_apk_id(&patched_apk.to_path_buf(), vendor_id, product_id);
+            push_apk_id(&patched_apk.to_path_buf(), vendor_id, product_id).unwrap();
         }
     }
 

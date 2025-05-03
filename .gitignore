@@ -21,3 +21,4 @@ shell.nix
 .env
 .envrc
 *.rs1
+.Dockerfile

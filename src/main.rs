@@ -103,8 +103,9 @@ impl eframe::App for PicomanApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ctx.set_pixels_per_point(1.5);
+
             if self.last_dev_update_time.elapsed().unwrap() > Duration::from_secs(1) {
-                //search for conencted devices
+                //search for connected devices
                 //update every second
                 self.last_dev_update_time = SystemTime::now();
                 self.device = device_comm::get_connected_device();
@@ -114,6 +115,7 @@ impl eframe::App for PicomanApp {
                     DeviceName::None => self.is_dev_connected = false,
                     _ => self.is_dev_connected = true,
                 }
+
                 // self.is_dev_connected = device_comm::is_usb_connected(vendor_id, product_id);
             }
 
@@ -194,11 +196,7 @@ impl eframe::App for PicomanApp {
                     .clicked()
                 {
                     self.is_processing = true;
-                    handle_upload(
-                        &self.files,
-                        self.status_bool_sender.clone(),
-                        self.status_str_sender.clone(),
-                    );
+                    handle_upload(&self);
                 };
                 if ui
                     .add_enabled(
@@ -209,10 +207,7 @@ impl eframe::App for PicomanApp {
                 {
                     self.is_processing = true;
                     handle_sign(
-                        &self.files,
-                        PathBuf::new(), //let user choose where to save
-                        self.status_bool_sender.clone(),
-                        self.status_str_sender.clone(),
+                        &self, None, //let user choose where to save
                     );
                     // send_worker.send(&self.files).unwrap();
                 };
@@ -264,14 +259,28 @@ impl eframe::App for PicomanApp {
     }
 }
 
-fn handle_upload(files: &Vec<PathBuf>, tx_ok_ref: Sender<bool>, tx_status_ref: Sender<String>) {
-    let tx_ok = tx_ok_ref.to_owned();
+// This function gets list of files that are going to be installed
+// and connected device's vendor and product id. Then it tries to
+// patch every APK and then pushes them individually to device
+
+fn handle_upload(app: &PicomanApp) {
+    // Need to init all variables before starting new thread
+
+    // Note: every var that is initialised with app.*.clone()
+    // just grabs the value from main app
+
+    let tx_ok = app.status_bool_sender.clone();
+    let tx_status_ref = app.status_str_sender.clone();
+
     let install_dir = temp_dir!().join("files_to_install");
 
-    let files_cloned = files.clone();
+    let files_cloned = app.files.clone();
 
     let _ = fs::remove_dir_all(install_dir.clone()); //remove all previously processed files
     fs::create_dir(install_dir.clone()).unwrap();
+
+    let vendor = app.device.info().vendor;
+    let product = app.device.info().product;
 
     // thread 1 patches files and
     // moves them to separate dir
@@ -281,12 +290,26 @@ fn handle_upload(files: &Vec<PathBuf>, tx_ok_ref: Sender<bool>, tx_status_ref: S
             let _ = tx_status_ref.send(format!("Status: Patching {:?}", file.clone()));
 
             let file_name_string = String::from(file.file_name().unwrap().to_str().unwrap());
+            // looks complicated but basically grabs filename and stores in String
+
             if file_name_string.contains("-patched.apk") {
                 println!("{} is already patched, proceeding", file_name_string);
                 fs::copy(file, &install_dir).unwrap();
             } else {
                 println!("{} is unpatched", file_name_string);
-                let patched = apk_utils::Apktool::patch_apk(file.as_path()).unwrap();
+
+                let patched: PathBuf;
+
+                match apk_utils::Apktool::patch_apk(file.as_path()) {
+                    // try to patch apk and catch errors
+                    Ok(file) => patched = file,
+                    Err(e) => {
+                        let _ = tx_ok.send(false);
+                        let _ = tx_status_ref.send(format!("Error patching file {file:?}\n{e}"));
+                        std::process::exit(1);
+                    }
+                }
+
                 fs::copy(
                     patched,
                     &install_dir.join(file.file_name().unwrap()), // copy to install dir under the same name
@@ -303,12 +326,13 @@ fn handle_upload(files: &Vec<PathBuf>, tx_ok_ref: Sender<bool>, tx_status_ref: S
             // println!("{:?}", &file);
             let file_path = file.unwrap().path().clone();
 
-            //this pushes the apk to first connected device,
-            //may be unreliable, but works in short-term :(
-            match device_comm::push_apk_first(&file_path.as_path()) {
+            //pushes the apk to connected device
+            match device_comm::push_apk_id(&file_path.as_path(), vendor, product) {
                 Ok(_) => println!("Successfully pushed {}", file_path.display()),
                 Err(e) => {
-                    println!("Failed to push {}: {}", file_path.display(), e);
+                    println!("Failed to push {}: {e}", file_path.display());
+                    let _ =
+                        tx_status_ref.send(format!("Failed to push {}: {e}", file_path.display()));
                     tx_ok.send(false).unwrap();
                     std::process::exit(1);
                 }
@@ -318,23 +342,20 @@ fn handle_upload(files: &Vec<PathBuf>, tx_ok_ref: Sender<bool>, tx_status_ref: S
         let _ = tx_status_ref.send(format!("Status: OK"));
 
         println!("Finished upload!");
-    });
+    }); //thread end
 }
 
-fn handle_sign(
-    files: &Vec<PathBuf>,
-    out: PathBuf,
-    tx_ok_ref: Sender<bool>,
-    tx_status_ref: Sender<String>,
-) {
+fn handle_sign(app: &PicomanApp, out: Option<PathBuf>) {
     let (tx_fil, rx_fil) = mpsc::channel::<Vec<PathBuf>>();
-    let (tx_out, rx_out) = mpsc::channel::<PathBuf>();
+    let (tx_out, rx_out) = mpsc::channel::<Option<PathBuf>>();
 
-    let tx_ok = tx_ok_ref.to_owned();
-    //let (tx_ok, rx_ok) = mpsc::channel::<bool>();
+    let tx_ok = app.status_bool_sender.clone();
+    let tx_status_ref = app.status_str_sender.clone();
 
-    tx_fil.send(files.clone()).unwrap();
+    tx_fil.send(app.files.clone()).unwrap();
+    //
     tx_out.send(out).unwrap();
+    // This sends a message to thread containing the path to save a file
 
     if !apk_utils::Apktool::_is_command_installed("java") {
         println!("Java is not installed");
@@ -344,19 +365,25 @@ fn handle_sign(
 
     thread::spawn(move || {
         let files = rx_fil.recv().unwrap();
+
         let out = rx_out.recv().unwrap();
 
         let mut out_mut = out.clone();
+        // Receive the message and clone
+        // the output dir to mutate it later
+
         let mut can_continue = true;
 
         let _ = tx_status_ref.send(String::from(
             "Status: Asking the directory to save the file",
         ));
 
-        if out == PathBuf::new() {
+        if out == None {
             let pick = DialogBuilder::file().open_single_dir().show().unwrap();
+            // builder of directory selector gui
             if pick != None {
-                out_mut = pick.unwrap();
+                out_mut = pick;
+                // out_mut still contains PathBuf wrapped in Option<>
             } else {
                 let _ = tx_ok.send(false);
                 //indicate that something is wrong to main thread
@@ -368,9 +395,23 @@ fn handle_sign(
             for file in files {
                 let _ = tx_status_ref.send(format!("Status: Patching file {:?}", file.clone()));
 
-                let patched = apk_utils::Apktool::patch_apk(file.as_path()).unwrap();
+                // let patched = apk_utils::Apktool::patch_apk(file.as_path()).unwrap();
+                let patched: PathBuf;
+                match apk_utils::Apktool::patch_apk(file.as_path()) {
+                    Ok(file) => patched = file,
+                    Err(e) => {
+                        let _ = tx_ok.send(false);
+                        let _ = tx_status_ref.send(format!("Error patching file {file:?}\n{e}"));
+                        std::process::exit(1);
+                    }
+                }
                 let filename = file.file_stem().unwrap().to_str().unwrap();
-                let out_named = &out_mut.join(format!("{filename}-patched.apk"));
+                let out_named = &out_mut
+                    .clone()
+                    .unwrap()
+                    .join(format!("{filename}-patched.apk"));
+                // get filename of currently patching file, add -patched
+                // to it and save in directory stored in out_mut
                 println!("{:#?}", out_named);
                 fs::copy(patched, out_named).unwrap();
             }

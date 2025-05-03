@@ -49,13 +49,13 @@ buildlinux-x86:
 
 	cargo build --profile {{PROFILE}} --target {{LINUX_X86_TOOLCHAIN}}
 
-release: buildwin-x86 buildlinux-x86 buildlinux-arm
+release: buildwin-x86 buildlinux-x86 # buildlinux-arm
 	rm -rf build
 	mkdir build
 	cp LICENSE LICENSE.txt
 	zip -9 build/picoman-{{WIN_TOOLCHAIN}}.zip {{BIN_PATH_WIN}} LICENSE.txt README.md
 	zip -9 build/picoman-{{LINUX_X86_TOOLCHAIN}}.zip {{BIN_PATH_LINUX_X86}} LICENSE.txt README.md
-	zip -9 build/picoman-{{LINUX_ARM64_TOOLCHAIN}}-arm64.zip {{BIN_PATH_LINUX_ARM64}} LICENSE.txt README.md
+	# zip -9 build/picoman-{{LINUX_ARM64_TOOLCHAIN}}-arm64.zip {{BIN_PATH_LINUX_ARM64}} LICENSE.txt README.md
 
 	rm LICENSE.txt
 
