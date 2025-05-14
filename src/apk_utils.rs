@@ -28,7 +28,7 @@ impl DownloadPath {
     pub fn apktool() -> DownloadPath {
         DownloadPath {
             url: "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.11.0.jar",
-            filename: "apktool.jar",
+            filename: "picoman/apktool.jar",
             sha256: "8fdc17c6fe2e6d80d71b8718eb2a5d0379f1cc7139ae777f6a499ce397b26f54",
             #[cfg(unix)]
             java: "java",
@@ -39,7 +39,7 @@ impl DownloadPath {
     pub fn uber_apk_signer() -> DownloadPath {
         DownloadPath {
             url: "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar",
-            filename: "uber_apk_signer.jar",
+            filename: "picoman/uber_apk_signer.jar",
             sha256: "e1299fd6fcf4da527dd53735b56127e8ea922a321128123b9c32d619bba1d835",
             #[cfg(unix)]
             java: "java",
@@ -69,12 +69,12 @@ impl Apktool {
 
         // check is file present
         if !Path::new(&url.filename).exists() {
-            println!(
+            info!(
                 "{} is not found, downloading from {} ...",
                 &url.filename, &url.url
             );
             Self::_download_file(false, &url);
-            println!("{} downloaded succesfully!", &url.filename);
+            info!("{} downloaded succesfully!", &url.filename);
         }
 
         // check file hash
@@ -82,10 +82,10 @@ impl Apktool {
         let hash = try_digest(&file).unwrap();
 
         if hash == url.sha256 {
-            println!("{} hash verified, proceeding", &url.filename);
+            info!("{} hash verified, proceeding", &url.filename);
             return Ok(());
         } else {
-            println!(
+            info!(
                 "{} is corrupted! Downloading from {} ...",
                 &url.filename, &url.url
             );
@@ -94,7 +94,7 @@ impl Apktool {
             let hash_new = try_digest(&file).unwrap();
 
             if hash_new == url.sha256 {
-                println!("{} downloaded and verified, proceeding", &url.filename);
+                info!("{} downloaded and verified, proceeding", &url.filename);
                 return Ok(());
             } else {
                 return Err(From::from(format!("Apktool hash doesn't match!")));
@@ -123,7 +123,7 @@ impl Apktool {
                 false
             }
             Err(_) => {
-                eprintln!("Failed to retrieve PATH environment variable.");
+                error!("Failed to retrieve PATH environment variable.");
                 false
             }
         }
@@ -133,7 +133,7 @@ impl Apktool {
         let java = DownloadPath::apktool().java;
         if Self::_is_command_installed(java) {
             let _ = Self::download_and_check_file(DownloadPath::apktool());
-            let _ = Command::new(java)
+            let output = Command::new(java)
                 .arg("-jar")
                 .arg(DownloadPath::apktool().filename)
                 .arg("d") //decompile
@@ -141,8 +141,14 @@ impl Apktool {
                 .arg(path)
                 .arg("-o")
                 .arg(out)
-                .status()
+                .output()
                 .expect("Java process failed to start. Is java installed correctly?");
+
+            info!(
+                "Invoking apktool decompiler\nStdout: {:?}\nStderr: {:?}",
+                output.stdout, output.stderr
+            );
+
             None
         } else {
             return Some(Error);
@@ -153,7 +159,7 @@ impl Apktool {
         let java = DownloadPath::apktool().java;
         if Self::_is_command_installed(java) {
             let _ = Self::download_and_check_file(DownloadPath::apktool());
-            let _ = Command::new(java)
+            let output = Command::new(java)
                 .arg("-jar")
                 .arg(DownloadPath::apktool().filename)
                 .arg("b") //build
@@ -161,8 +167,14 @@ impl Apktool {
                 .arg(path)
                 .arg("-o")
                 .arg(out)
-                .status()
+                .output()
                 .expect("Java process failed to start. Is java installed correctly?");
+
+            info!(
+                "Invoking apktool builder\nStdout: {:?}\nStderr: {:?}",
+                output.stdout, output.stderr
+            );
+
             None
         } else {
             return Some(Error);
@@ -216,18 +228,18 @@ impl Apktool {
 
         let doc_root = doc.root_element().unwrap();
 
-        println!(
+        info!(
             "XML contents:\n{} \nRoot element: \n************\n{:?}",
             xml_contents, doc_root
         );
 
-        println!(
+        info!(
             "Document is root: {}, {:?}",
             doc_root.is_root(&doc_immut),
             doc_root.attribute(&doc_immut, "package")
         );
 
-        println!(
+        info!(
             "Root's children:\n{:?}\n{:?}\n{:?}",
             doc_root.child_elements(&doc_immut),
             doc_root.child_elements(&doc_immut)[1].name(&doc_immut),
@@ -255,15 +267,15 @@ impl Apktool {
             WORDS1.choose(&mut rand::rng()).unwrap(),
             WORDS2.choose(&mut rand::rng()).unwrap()
         );
-        println!("New package name: {}", package_new);
+        info!("New package name: {}", package_new);
 
         doc_root.set_attribute(&mut doc, "package", package_new);
-        println!("Succesfully set the package name");
+        info!("Succesfully set the package name");
 
         let app_name_first_char = app_name_xml.unwrap().chars().next().unwrap();
 
         if app_name_first_char == '@' {
-            println!("Name of the app is likely not stored in AndroidManifest.xml, skipping");
+            error!("Name of the app is likely not stored in AndroidManifest.xml, skipping");
         } else {
             let new_app_name = format!(
                 "{}{}",
@@ -288,14 +300,20 @@ impl Apktool {
         let java = DownloadPath::apktool().java;
         if Self::_is_command_installed(java) {
             let _ = Self::download_and_check_file(DownloadPath::uber_apk_signer());
-            let _ = Command::new(java)
+            let output = Command::new(java)
                 .arg("-jar")
                 .arg(DownloadPath::uber_apk_signer().filename)
                 .arg("--overwrite")
                 .arg("-apks")
                 .arg(path)
-                .status()
+                .output() // capture output
                 .expect("Java process failed to start. Is java installed correctly?");
+
+            info!(
+                "Invoking Uber Apk Signer\nStdout: {:?}\nStderr: {:?}",
+                output.stdout, output.stderr
+            );
+
             return None;
         } else {
             return Some(Error);
@@ -318,30 +336,30 @@ impl Apktool {
         let apk_in = temp_dir.clone().join("in.apk");
         let apk_patched = exec_dir.clone().join("patched.apk");
 
-        println!("Cleaning old files...");
+        info!("Cleaning old files...");
 
         match std::fs::remove_dir_all(temp_dir.clone()) {
-            Ok(_t) => println!("Removed files in {:?}", temp_dir.clone()),
-            Err(err) => println!("Error while deleting directory: {}", err),
+            Ok(_t) => info!("Removed files in {:?}", temp_dir.clone()),
+            Err(err) => error!("Error while deleting directory: {}", err),
         }
 
-        println!(
+        info!(
             "Copying {:?} to {:?}...",
             file_path.file_name(),
             temp_dir.clone()
         );
         std::fs::create_dir(temp_dir.clone()).unwrap();
         let result = std::fs::copy(file_path, apk_in.clone());
-        println!("{:?}", result);
+        info!("{:?}", result);
 
-        println!("Disassembling file...");
+        info!("Disassembling file...");
         let status = Self::decomp_apk(apk_in.as_path(), temp_dir.clone().join("decomp").as_path());
         match status {
             Some(err) => return Err(err),
             _ => (),
         }
 
-        println!("Patching metadata...");
+        info!("Patching metadata...");
         let status = Self::patch_manifest(
             temp_dir
                 .clone()
@@ -371,7 +389,7 @@ impl Apktool {
                 .join("SIGNKEY.SF"),
         );
 
-        println!("Assembling apk...");
+        info!("Assembling apk...");
         let status = Self::comp_apk(
             temp_dir.clone().join("decomp").as_path(),
             temp_dir.clone().join("out.apk").as_path(),
@@ -381,7 +399,7 @@ impl Apktool {
             _ => (),
         }
 
-        println!("Signing apk...");
+        info!("Signing apk...");
         let status = Self::sign_apk(temp_dir.clone().join("out.apk").as_path());
         match status {
             Some(err) => return Err(err),
@@ -395,15 +413,16 @@ impl Apktool {
         .unwrap();
 
         match std::fs::remove_dir_all(temp_dir.clone()) {
-            Ok(_t) => println!("Removed files in {:?}", temp_dir.clone()),
-            Err(err) => println!("Error while deleting directory: {}", err),
+            Ok(_t) => info!("Removed files in {:?}", temp_dir.clone()),
+            Err(err) => error!("Error while deleting directory: {}", err),
         }
 
-        println!(
+        info!(
             "{} {}",
             Colorize::green("Succesfully patched file! It's saved as"),
             Colorize::green(apk_patched.clone().to_str().unwrap()),
         );
+
         return Ok(apk_patched.clone());
     }
 }

@@ -9,6 +9,7 @@
 /submodule
 /build
 /.github
+/picoman
 Cargo.lock
 flake.lock
 flake.nix

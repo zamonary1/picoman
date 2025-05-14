@@ -14,8 +14,14 @@ use eframe::egui::{self};
 use egui::Color32;
 use native_dialog::{DialogBuilder, MessageLevel};
 
+#[macro_use]
+extern crate log;
+extern crate log4rs;
+
 fn main() {
-    // println!("{:?}", temp_dir!().join("files_to_install"));
+    // Logger
+    helpers::logger_init().unwrap();
+
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() > 1 {
@@ -26,7 +32,7 @@ fn main() {
 
     helpers::nix_workaround();
 
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    // env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let _ = fs::create_dir(temp_dir!());
     //check temp_dir!() in helpers.rs`
@@ -44,15 +50,17 @@ fn main() {
         options,
         Box::new(|_cc| Ok(Box::<PicomanApp>::default())),
     ) {
-        Ok(_) => {}
+        Ok(_) => {
+            info!("Opened native gui");
+        }
         Err(err) => {
-            eprintln!("There was an error when starting GUI:\n{}", err);
             let _ = DialogBuilder::message()
                 .set_level(MessageLevel::Error)
                 .set_title("Error")
                 .set_text(format!("There was an error when starting GUI:\n{}", err))
                 .alert()
                 .show();
+            error!("There was an error when starting GUI:\n{}", err);
             std::process::exit(1);
         }
     }
@@ -153,7 +161,7 @@ impl eframe::App for PicomanApp {
                         for elem in 0..self.files.len() {
                             ui.horizontal(|ui| {
                                 if ui.button("Delete").clicked() {
-                                    println!("Deleted element {}!", elem);
+                                    info!("Deleted element {}!", elem);
                                     elem_to_delete = elem;
                                 }
                                 // Without ui.with_layout text doesn't cull and overflows from window edge
@@ -293,10 +301,10 @@ fn handle_upload(app: &PicomanApp) {
             // looks complicated but basically grabs filename and stores in String
 
             if file_name_string.contains("-patched.apk") {
-                println!("{} is already patched, proceeding", file_name_string);
+                info!("{} is already patched, proceeding", file_name_string);
                 fs::copy(file, &install_dir).unwrap();
             } else {
-                println!("{} is unpatched", file_name_string);
+                info!("{} is unpatched", file_name_string);
 
                 let patched: PathBuf;
 
@@ -317,9 +325,9 @@ fn handle_upload(app: &PicomanApp) {
                 .unwrap();
             }
         }
-        println!("Finished patching.");
+        info!("Finished patching.");
 
-        println!("Starting upload");
+        info!("Starting upload");
         let dir_scan = fs::read_dir(&install_dir).unwrap();
         for file in dir_scan {
             let _ = tx_status_ref.send(format!("Status: Uploading {:?}", file));
@@ -412,7 +420,7 @@ fn handle_sign(app: &PicomanApp, out: Option<PathBuf>) {
                     .join(format!("{filename}-patched.apk"));
                 // get filename of currently patching file, add -patched
                 // to it and save in directory stored in out_mut
-                println!("{:#?}", out_named);
+                info!("{:#?}", out_named);
                 fs::copy(patched, out_named).unwrap();
             }
         }
