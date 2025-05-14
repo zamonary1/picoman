@@ -1,4 +1,4 @@
-PROFILE := "dev"
+PROFILE := "release"
 
 _dir_name := if PROFILE == "dev" { "debug" } else if PROFILE == "release" { "release" } else { "unknown" }
 
