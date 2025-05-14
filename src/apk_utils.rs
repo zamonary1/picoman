@@ -28,7 +28,7 @@ impl DownloadPath {
     pub fn apktool() -> DownloadPath {
         DownloadPath {
             url: "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.11.0.jar",
-            filename: "picoman/apktool.jar",
+            filename: "picoman_files/apktool.jar",
             sha256: "8fdc17c6fe2e6d80d71b8718eb2a5d0379f1cc7139ae777f6a499ce397b26f54",
             #[cfg(unix)]
             java: "java",
@@ -39,7 +39,7 @@ impl DownloadPath {
     pub fn uber_apk_signer() -> DownloadPath {
         DownloadPath {
             url: "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar",
-            filename: "picoman/uber_apk_signer.jar",
+            filename: "picoman_files/uber_apk_signer.jar",
             sha256: "e1299fd6fcf4da527dd53735b56127e8ea922a321128123b9c32d619bba1d835",
             #[cfg(unix)]
             java: "java",

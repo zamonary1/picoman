@@ -2,6 +2,8 @@
 // extern crate log;
 // extern crate log4rs;
 
+use std::fs::{create_dir_all, exists};
+
 use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::append::file::FileAppender;
@@ -39,7 +41,14 @@ pub fn logger_init() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = ConsoleAppender::builder().build();
 
     let localtime = chrono::Local::now();
-    let path = format!("picoman/logs/{}.log", localtime);
+
+    let logs_dir = std::path::PathBuf::from("picoman_files").join("logs");
+
+    if !exists(&logs_dir)? {
+        create_dir_all(&logs_dir)?;
+    } //create new dir if it doesn't exist already
+
+    let path = logs_dir.join(format!("{localtime}.log"));
 
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
