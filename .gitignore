@@ -10,6 +10,7 @@
 /build
 /.github
 /picoman
+/picoman_files
 Cargo.lock
 flake.lock
 flake.nix

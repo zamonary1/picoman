@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+// hide windows console
 pub mod apk_utils;
 pub mod cli;
 pub mod device_comm;
