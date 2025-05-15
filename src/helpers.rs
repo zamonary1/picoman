@@ -11,7 +11,6 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-// use colored::Colorize;
 use sysinfo::System;
 
 use chrono;
