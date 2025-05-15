@@ -11,7 +11,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
 
-use colored::Colorize;
+// use colored::Colorize;
 use sysinfo::System;
 
 use chrono;
@@ -21,20 +21,6 @@ macro_rules! temp_dir {
     () => {
         std::env::temp_dir().join("picoman")
     };
-}
-
-pub fn nix_workaround() {
-    if System::name().unwrap() == "NixOS" {
-        println!(
-            "{}{}",
-            "Running on NixOS
-If you can't launch the gui, run:"
-                .red(),
-            "
-nix-shell --run \"just runnix\""
-                .green()
-        );
-    }
 }
 
 pub fn logger_init() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,9 +43,9 @@ pub fn logger_init() -> Result<(), Box<dyn std::error::Error>> {
     let config_stdout = Config::builder()
         .appender(
             Appender::builder()
-                .filter(Box::new(ThresholdFilter::new(LevelFilter::Info)))
+                .filter(Box::new(ThresholdFilter::new(LevelFilter::Warn)))
                 .build("stdout", Box::new(stdout)),
-            //Appender for stdout has a filter for "info" log level
+            //Appender for stdout has a filter for "warn" log level
         )
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
         //That's the same appender but without filters, so the file has trace log level
@@ -71,6 +57,36 @@ pub fn logger_init() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
     log4rs::init_config(config_stdout)?;
+
+    Ok(())
+}
+
+pub fn logger_collect_sys_info() -> Result<(), Box<dyn std::error::Error>> {
+    info!(
+        "Picoman version {}, commit {}",
+        env!("CARGO_PKG_VERSION"),
+        env!("GIT_HASH"),
+    );
+
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    info!(
+        "[SYSINFO] total memory:      {} megabytes",
+        sys.total_memory() / 1024 / 1024
+    );
+    info!(
+        "[SYSINFO] used memory :      {} megabytes",
+        sys.used_memory() / 1024 / 1024
+    );
+    info!(
+        "[SYSINFO] CPU:               {}x {} {}",
+        sys.cpus().len(),
+        sys.cpus()[0].vendor_id(),
+        sys.cpus()[0].brand(),
+    );
+    info!("[SYSINFO] System name:       {:?}", System::name());
+    info!("[SYSINFO] System OS version: {:?}", System::os_version());
 
     Ok(())
 }

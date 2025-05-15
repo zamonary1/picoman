@@ -23,18 +23,16 @@ extern crate log4rs;
 fn main() {
     // Logger
     helpers::logger_init().unwrap();
+    helpers::logger_collect_sys_info().unwrap();
 
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() > 1 {
-        //first arg is the path to executable
+        //first arg always is the path to the executable
+        info!("Passed args: {args:?}");
         cli::parse_args();
         std::process::exit(0);
     }
-
-    helpers::nix_workaround();
-
-    // env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let _ = fs::create_dir(temp_dir!());
     //check temp_dir!() in helpers.rs`
