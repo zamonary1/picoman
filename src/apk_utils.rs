@@ -1,5 +1,6 @@
 use std::fmt::Error;
 use std::path::Path;
+use std::str::from_utf8;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -145,8 +146,9 @@ impl Apktool {
                 .expect("Java process failed to start. Is java installed correctly?");
 
             info!(
-                "Invoking apktool decompiler\nStdout: {:?}\nStderr: {:?}",
-                output.stdout, output.stderr
+                "Invoking apktool decompiler\nStdout: {}\nStderr: {}",
+                from_utf8(output.stdout.as_slice()).unwrap_or_default(),
+                from_utf8(output.stderr.as_slice()).unwrap_or_default()
             );
 
             None
@@ -171,8 +173,9 @@ impl Apktool {
                 .expect("Java process failed to start. Is java installed correctly?");
 
             info!(
-                "Invoking apktool builder\nStdout: {:?}\nStderr: {:?}",
-                output.stdout, output.stderr
+                "Invoking apktool builder\nStdout: {}\nStderr: {}",
+                from_utf8(output.stdout.as_slice()).unwrap_or_default(),
+                from_utf8(output.stderr.as_slice()).unwrap_or_default()
             );
 
             None
@@ -310,8 +313,9 @@ impl Apktool {
                 .expect("Java process failed to start. Is java installed correctly?");
 
             info!(
-                "Invoking Uber Apk Signer\nStdout: {:?}\nStderr: {:?}",
-                output.stdout, output.stderr
+                "Invoking Uber Apk Signer\nStdout: {}\nStderr: {}",
+                from_utf8(output.stdout.as_slice()).unwrap_or_default(),
+                from_utf8(output.stderr.as_slice()).unwrap_or_default()
             );
 
             return None;

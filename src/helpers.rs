@@ -40,7 +40,7 @@ nix-shell --run \"just runnix\""
 pub fn logger_init() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = ConsoleAppender::builder().build();
 
-    let localtime = chrono::Local::now().format("%d-%M-%Y_%H.%M.%S");
+    let localtime = chrono::Local::now().format("%d-%m-%Y_%H.%M.%S");
 
     let logs_dir = std::path::PathBuf::from("picoman_files").join("logs");
 
