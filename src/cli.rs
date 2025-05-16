@@ -39,7 +39,7 @@ pub fn parse_args() {
                     arg!(
                     -o --out <PATH> "Where to put processed files" )
                     .required(false)
-                    .default_value("picoman-out")
+                    .default_value("picoman_files")
                     .value_parser(value_parser!(PathBuf)),
 
                 )
